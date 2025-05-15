@@ -1,45 +1,61 @@
 import { Request, Response, NextFunction } from "express";
 import { IProduct, Product } from "../model/product.model";
+import { generateSku } from "../middleware/sku.middleware";
 import { Supplier } from "../model/supplier.model";
+import mongoose from "mongoose";
+import { error } from "console";
 
 const createProduct = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
+  console.log(req.body);
+
   try {
     const {
       name,
-      sku,
       stock,
       costPrice,
       sellingPrice,
       lowStockThreshold,
       category,
+      sku: customSku,
+      supplier,
     } = req.body;
 
     const file = req.file;
 
     if (
       !name ||
-      !sku ||
       !stock ||
       !costPrice ||
       !sellingPrice ||
       !lowStockThreshold ||
-      !category
+      !category ||
+      !supplier
     ) {
       res.status(400);
       throw new Error("Required field should be provided!");
+    }
+
+    if (!mongoose.isValidObjectId(supplier)) {
+      res.status(400);
+      throw new Error("Invalid supplier ID format.");
+    }
+
+    const supplierExists = await Supplier.findById(supplier);
+    if (!supplierExists) {
+      res.status(400);
+      throw new Error("Supplier does not exist in the database.");
     }
 
     const image = `${req.protocol}://${req.get("host")}/uploads/${
       file?.filename
     }`;
 
-    const ProductData: Partial<IProduct> = {
+    const productData: Partial<IProduct> = {
       name,
-      sku,
       stock,
       costPrice,
       sellingPrice,
@@ -47,15 +63,17 @@ const createProduct = async (
       image,
       category,
       //@ts-ignore
-      // supplier: req.supplier.id,
+      supplier: supplierExists.id,
     };
+    console.log(supplier);
 
-    //@ts-ignore
-    const supplier = req.supplier;
+    if (customSku) {
+      productData.sku = await generateSku(Product, customSku);
+    }
 
-    const product = await Product.create(ProductData);
+    const product = await Product.create(productData);
 
-    res.status(200).json({
+    res.status(201).json({
       id: product.id,
       name: product.name,
       sku: product.sku,
@@ -64,7 +82,7 @@ const createProduct = async (
       sellingPrice: product.sellingPrice,
       image: product.image,
       category: product.category,
-      // supplier: supplier.id,
+      supplier: supplier,
     });
   } catch (error) {
     res.status(500).json({
@@ -74,4 +92,52 @@ const createProduct = async (
   }
 };
 
-export { createProduct };
+const updateProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { stock, costPrice, sellingPrice, lowStockThreshold } = req.body;
+
+    const { sku } = req.params;
+
+    const file = req.file;
+
+    const product = await Product.findOne({ sku });
+    if (!product) {
+      res.status(404);
+      throw new Error("Product not Found!");
+    }
+
+    if (stock) product.stock = stock;
+    if (costPrice) product.costPrice = costPrice;
+    if (sellingPrice) product.sellingPrice = sellingPrice;
+    if (lowStockThreshold) product.lowStockThreshold = lowStockThreshold;
+    if (file) {
+      product.image = `${req.protocol}://${req.get("host")}/uploads/${
+        file.filename
+      }`;
+    }
+
+    await product.save();
+
+    res.status(201).json({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      stock: product.stock,
+      costPrice: product.costPrice,
+      sellingPrice: product.sellingPrice,
+      image: product.image,
+      category: product.category,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error Something went wrong to edit the product list",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createProduct, updateProduct };

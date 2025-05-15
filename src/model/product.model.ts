@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
+import { attachedMiddleware, ISkuDocument } from "../middleware/sku.middleware";
 
-export interface IProduct {
+export interface IProduct extends ISkuDocument {
   name: string;
-  sku: string;
   category: string; // reff category
-  supplier: mongoose.Schema.Types.ObjectId;
+  supplier: mongoose.Types.ObjectId;
   stock: Number;
   costPrice: Number;
   sellingPrice: Number;
@@ -20,7 +20,9 @@ const productSchema = new mongoose.Schema<IProduct>({
 
   sku: {
     type: String,
-    required: true,
+    required: false,
+    unique: true,
+    lowercase: true,
   },
 
   category: {
@@ -29,8 +31,9 @@ const productSchema = new mongoose.Schema<IProduct>({
   },
 
   supplier: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Supplier",
+    required: true,
   },
   stock: {
     type: Number,
@@ -57,6 +60,8 @@ const productSchema = new mongoose.Schema<IProduct>({
     required: false,
   },
 });
+
+attachedMiddleware<IProduct>(productSchema);
 
 const Product = mongoose.model("Product", productSchema);
 export { Product };

@@ -1,7 +1,6 @@
 import multer, { Multer } from "multer";
 import path from "path";
 import { Request, Response, NextFunction } from "express";
-import { Callback } from "mongoose";
 
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
@@ -11,7 +10,10 @@ const storage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(
       null,
-      file.filename + "-" + uniqueSuffix + path.extname(file.originalname)
+      file.originalname.split(".")[0] +
+        "-" +
+        uniqueSuffix +
+        path.extname(file.originalname)
     );
   },
 });

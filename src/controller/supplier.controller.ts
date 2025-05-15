@@ -37,4 +37,39 @@ const createSupplier = async (
   }
 };
 
-export { createSupplier };
+const updateSupplier = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, phone, address } = req.body;
+    const { id } = req.params;
+
+    const supplier = await Supplier.findById({ _id: id });
+    if (!supplier) {
+      res.status(404);
+      throw new Error("Suppliers not found");
+    }
+    if (email) supplier.email = email;
+    if (phone) supplier.phone = phone;
+    if (address) supplier.address = address;
+
+    await supplier.save();
+
+    res.status(200).json({
+      id: supplier.id,
+      name: supplier.name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error, Something went wrong to edit the Supplier details",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createSupplier, updateSupplier };

@@ -79,7 +79,8 @@ const userLogin = async (req: Request, res: Response): Promise<void> => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        isAdmin: user.isAdmin,
+        role: user.role,
+        // isAdmin: user.isAdmin,
         accessToken,
       });
     } else {
@@ -98,4 +99,35 @@ const userLogout = async (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "logged out successfully" });
 };
 
-export { userRegister, userLogin, userLogout };
+const updateUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password } = req.body;
+
+    const { id } = req.params;
+
+    const user = await User.findOne({ _id: id });
+    if (!user) {
+      res.status(400);
+      throw new Error("User not Found!");
+    }
+    console.log(user);
+
+    if (email) user.email = email;
+    if (password) user.password = password;
+
+    await user.save();
+    res.status(201).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password: user.password,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error, Something went wrong to edit the user details",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { userRegister, userLogin, userLogout, updateUser };
