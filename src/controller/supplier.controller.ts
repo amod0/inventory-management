@@ -6,7 +6,6 @@ const createSupplier = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log(req.body);
   try {
     const { name, email, phone, address } = req.body;
     if (!name || !email || !phone || !address) {
@@ -72,4 +71,34 @@ const updateSupplier = async (
   }
 };
 
-export { createSupplier, updateSupplier };
+const deleteSupplier = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400);
+      throw new Error("Supplier id is required");
+    }
+
+    const supplier = await Supplier.findOneAndDelete({ id });
+    if (!supplier) {
+      res.status(404);
+      throw new Error("Supplier not found");
+    }
+
+    res.status(200).json({
+      message: "Supplier deleted successfully",
+      _id: supplier._id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error, Something went wrong to delete the Suppliers!",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createSupplier, updateSupplier, deleteSupplier };

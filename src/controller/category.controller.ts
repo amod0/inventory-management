@@ -64,4 +64,34 @@ const updateCategory = async (
   }
 };
 
-export { createCategory, updateCategory };
+const deleteCategory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400);
+      throw new Error("Product Id is required");
+    }
+
+    const category = await Category.findOneAndDelete({ id });
+    if (!category) {
+      res.status(404);
+      throw new Error("Category not found");
+    }
+
+    res.status(200).json({
+      message: "Category deleted successfully",
+      _id: category._id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error, Something went wrong to delete the Category!",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createCategory, updateCategory, deleteCategory };

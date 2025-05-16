@@ -1,8 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 import { ROLE_ENUM } from "../enum/role.enum";
 import bcrypt from "bcryptjs";
 
 export interface IUser {
+  _id: Schema.Types.ObjectId;
   name: string;
   email: string;
   password: string;

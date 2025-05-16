@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { ROLE_ENUM } from "../enum/role.enum";
-import { User } from "../model/user.model";
+import { IUser, User } from "../model/user.model";
 import JWT from "jsonwebtoken";
+import { Types } from "mongoose";
+
+interface CustomRequest extends Request {
+  user?: IUser;
+}
 
 const userRegister = async (
   req: Request,
@@ -46,7 +51,6 @@ const userRegister = async (
     });
   } catch (error) {
     res.status(500);
-    console.log(error);
     next(new Error("Service Error, Server problem registring the User."));
   }
 };
@@ -80,17 +84,15 @@ const userLogin = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
-        // isAdmin: user.isAdmin,
         accessToken,
       });
     } else {
       res.status(400).json({ message: "Invalid password" });
     }
   } catch (error) {
-    console.log(error);
-    res
-      .status(500)
-      .json({ message: "Service Error, problem while logging in" });
+    res.status(500).json({
+      message: "Service Error, problem while logging in",
+    });
   }
 };
 
@@ -110,7 +112,6 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
       res.status(400);
       throw new Error("User not Found!");
     }
-    console.log(user);
 
     if (email) user.email = email;
     if (password) user.password = password;
@@ -130,4 +131,86 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { userRegister, userLogin, userLogout, updateUser };
+const updateAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { role } = req.body as {
+      role: ROLE_ENUM;
+    };
+    const { id } = req.params;
+
+    const user = await User.findOne({ _id: id });
+    if (!user) {
+      res.status(400);
+      throw new Error("User not Found!");
+    }
+    if (role) user.role = role;
+
+    await user.save();
+    res.status(201).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "rror, Something went wrong to edit the user roles!",
+      error: (error as Error).message,
+    });
+  }
+};
+
+const deleteStaff = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await User.findByIdAndDelete(req.user?._id);
+    res.json({ message: "Account deleted" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleteing the account!",
+      error: (error as Error).message,
+    });
+  }
+};
+
+const deleteAdmin = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      res.status(400).json({
+        message: "Invalid user ID",
+      });
+      return;
+    }
+    const userToDelete = await User.findById(req.params.id);
+    if (!userToDelete) {
+      res.status(404).json({
+        message: "User not found",
+      });
+      return;
+    }
+    await userToDelete.deleteOne();
+    res.json({ message: "Staff deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting the User",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export {
+  userRegister,
+  userLogin,
+  userLogout,
+  updateUser,
+  updateAdmin,
+  deleteStaff,
+  deleteAdmin,
+};

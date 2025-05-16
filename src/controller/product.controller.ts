@@ -3,15 +3,12 @@ import { IProduct, Product } from "../model/product.model";
 import { generateSku } from "../middleware/sku.middleware";
 import { Supplier } from "../model/supplier.model";
 import mongoose from "mongoose";
-import { error } from "console";
 
 const createProduct = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  console.log(req.body);
-
   try {
     const {
       name,
@@ -65,7 +62,6 @@ const createProduct = async (
       //@ts-ignore
       supplier: supplierExists.id,
     };
-    console.log(supplier);
 
     if (customSku) {
       productData.sku = await generateSku(Product, customSku);
@@ -140,4 +136,34 @@ const updateProduct = async (
   }
 };
 
-export { createProduct, updateProduct };
+const deleteProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400);
+      throw new Error("Product Id is required");
+    }
+
+    const product = await Product.findOneAndDelete({ id });
+    if (!product) {
+      res.status(404);
+      throw new Error("product not found");
+    }
+
+    res.status(200).json({
+      message: "product deleted successfully",
+      _id: product._id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error, Something went wrong to delete the product!",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createProduct, updateProduct, deleteProduct };
