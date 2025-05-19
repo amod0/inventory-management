@@ -3,6 +3,12 @@ import { ROLE_ENUM } from "../enum/role.enum";
 import { IUser, User } from "../model/user.model";
 import JWT from "jsonwebtoken";
 import { Types } from "mongoose";
+import {
+  generateVerificationCode,
+  storeVerifyToken,
+  verifyToken,
+} from "../utils/verification.util";
+import { sendVerificationEmail } from "../utils/email.util";
 
 interface CustomRequest extends Request {
   user?: IUser;
@@ -15,9 +21,9 @@ const userRegister = async (
 ): Promise<void> => {
   try {
     const { name, email, password, role } = req.body as {
-      name: String;
-      email: String;
-      password: String;
+      name: string;
+      email: string;
+      password: string;
       role: ROLE_ENUM;
     };
     const userExists = await User.findOne({ email });
@@ -41,14 +47,30 @@ const userRegister = async (
       role,
     });
 
-    res.status(201).json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+    if (user) {
+      const code = generateVerificationCode();
+      const [emailSent] = await Promise.all([
+        sendVerificationEmail(email, code),
+      ]);
+      const result = await verifyToken(email, code);
 
-      //  verifyToken:
-    });
+      if (emailSent) {
+        res.status(201).json({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          verifyToken: result.valid,
+          message: "User registered and code sent",
+        });
+      } else {
+        res.status(500);
+        throw new Error("Failed to send code or store verification token");
+      }
+    } else {
+      res.status(400);
+      throw new Error("Invalid user data");
+    }
   } catch (error) {
     res.status(500);
     next(new Error("Service Error, Server problem registring the User."));
@@ -57,7 +79,6 @@ const userRegister = async (
 
 const userLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log(req?.body);
     const { email, password } = req.body;
     const user: any = await User.findOne({ email });
     if (!user) {
@@ -205,6 +226,61 @@ const deleteAdmin = async (
   }
 };
 
+const sendVerificationCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email } = req.body as { email: string };
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(400);
+      throw new Error("User not found");
+    }
+    const code = generateVerificationCode();
+    const [emailSent] = await Promise.all([
+      sendVerificationEmail(email, code),
+      // storeVerifyToken(email, code),
+    ]);
+
+    if (emailSent) {
+      res
+        .status(200)
+        .json({ success: true, message: "Verification code sent" });
+    } else {
+      res.status(500);
+      throw new Error("Failed to send verification code");
+    }
+  } catch (error) {
+    res.status(500);
+    console.error(error);
+    next(new Error("Server error"));
+  }
+};
+
+const verifyCode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, code } = req.body as { email: string; code: string };
+    const result = await verifyToken(email, code);
+    const [tokenStored] = await Promise.all([storeVerifyToken(email, code)]);
+
+    if (tokenStored && result) {
+      res.status(200).json({
+        success: result.valid,
+        verifyToken: result.valid && tokenStored,
+        message: result.message,
+      });
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    res.status(500);
+    console.error(error);
+    next(new Error("Server error"));
+  }
+};
+
 export {
   userRegister,
   userLogin,
@@ -213,4 +289,6 @@ export {
   updateAdmin,
   deleteStaff,
   deleteAdmin,
+  sendVerificationCode,
+  verifyCode,
 };

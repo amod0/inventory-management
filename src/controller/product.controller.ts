@@ -3,6 +3,10 @@ import { IProduct, Product } from "../model/product.model";
 import { generateSku } from "../middleware/sku.middleware";
 import { Supplier } from "../model/supplier.model";
 import mongoose from "mongoose";
+import { createObjectCsvWriter } from "csv-writer";
+import path from "path";
+import { sendLowStockEmail } from "../utils/email.util";
+import { promises } from "dns";
 
 const createProduct = async (
   req: Request,
@@ -12,12 +16,12 @@ const createProduct = async (
   try {
     const {
       name,
+      sku: customSku,
       stock,
       costPrice,
       sellingPrice,
       lowStockThreshold,
       category,
-      sku: customSku,
       supplier,
     } = req.body;
 
@@ -142,13 +146,13 @@ const deleteProduct = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
-    if (!id) {
+    const { sku } = req.params;
+    if (!sku) {
       res.status(400);
       throw new Error("Product Id is required");
     }
 
-    const product = await Product.findOneAndDelete({ id });
+    const product = await Product.findOneAndDelete({ sku });
     if (!product) {
       res.status(404);
       throw new Error("product not found");
@@ -157,6 +161,7 @@ const deleteProduct = async (
     res.status(200).json({
       message: "product deleted successfully",
       _id: product._id,
+      sku: product.sku,
     });
   } catch (error) {
     res.status(500).json({
@@ -166,4 +171,94 @@ const deleteProduct = async (
   }
 };
 
-export { createProduct, updateProduct, deleteProduct };
+const exportCSV = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const product = await Product.find();
+
+    const csvWriter = createObjectCsvWriter({
+      path: path.join(__dirname, "../../report/file.csv"),
+      header: [
+        { id: "name", title: "Name" },
+        { id: "category", title: "Category" },
+        { id: "supplier", title: "Supplier" },
+        { id: "stock", title: "Stock" },
+        { id: "costPrice", title: "Cost Price" },
+        { id: "sellingPrice", title: "Selling Price" },
+        { id: "lowStockThreshold", title: "Low Stock Threshold" },
+        { id: "image", title: "image" },
+      ],
+    });
+
+    await csvWriter.writeRecords(product);
+    res.sendFile(path.join(__dirname, "../../report/file.csv"));
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to export as CSV ",
+      error: (error as Error).message,
+    });
+  }
+};
+
+const lowStockAlert = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const products = await Product.find({
+      $expr: { $lt: ["$stock", "$lowStockThreshold"] },
+    }).populate<{ supplier: { email: string } }>("supplier");
+
+    if (!products.length) {
+      res.status(200).json({
+        message: "No products with low stock found.",
+      });
+    }
+
+    for (const product of products) {
+      if (!product || !product.supplier) {
+        res.status(200).json({
+          message: `Product or Supplier not found for product ${product.id}`,
+        });
+        continue;
+      }
+
+      const supplierEmail = product.supplier.email;
+      const productId = (
+        product.id as string | number | { toString(): string }
+      ).toString();
+      const stock = product.stock;
+
+      const emailSent = await Promise.all([
+        sendLowStockEmail(supplierEmail, stock, productId),
+      ]);
+
+      if (emailSent[0]) {
+        console.log(`Email sent for product ${productId}`);
+        res.status(200).json({
+          message: `Email sent for product ${product.id}`,
+        });
+      } else {
+        console.error(`Failed to send email for product ${productId}`);
+        res.status(400).json({
+          message: `Failed to send email for Product ${productId}`,
+        });
+      }
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to Warn about Low Product Stocks",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  exportCSV,
+  lowStockAlert,
+};

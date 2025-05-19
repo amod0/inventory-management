@@ -1,4 +1,4 @@
-export enum STOCK_ENUM {
+export enum STOCKTYPE_ENUM {
   IN = "in",
   OUT = "out",
 }

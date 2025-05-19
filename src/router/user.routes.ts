@@ -7,6 +7,8 @@ import {
   userLogin,
   userLogout,
   userRegister,
+  sendVerificationCode,
+  verifyCode,
 } from "../controller/user.controller";
 import { admin, secure } from "../middleware/userAuth.middleware";
 
@@ -19,5 +21,7 @@ router.route("/edit/:id").put(secure, updateUser);
 router.route("/editrole/:id").put(secure, admin, updateAdmin);
 router.route("/delete/me").delete(secure, deleteStaff);
 router.route("/delete/:id").delete(secure, admin, deleteAdmin);
+router.route("/send-verification-code").post(sendVerificationCode);
+router.route("/verify-code").post(verifyCode);
 
 export default router;

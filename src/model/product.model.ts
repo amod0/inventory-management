@@ -5,10 +5,10 @@ export interface IProduct extends ISkuDocument {
   name: string;
   category: string; // reff category
   supplier: mongoose.Types.ObjectId;
-  stock: Number;
-  costPrice: Number;
-  sellingPrice: Number;
-  lowStockThreshold: string;
+  stock: number;
+  costPrice: number;
+  sellingPrice: number;
+  lowStockThreshold: number;
   image: string;
 }
 
@@ -51,7 +51,7 @@ const productSchema = new mongoose.Schema<IProduct>({
   },
 
   lowStockThreshold: {
-    type: String,
+    type: Number,
     required: false,
   },
 

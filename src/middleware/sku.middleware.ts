@@ -5,6 +5,7 @@ import {
   Document,
 } from "mongoose";
 import slugify from "slugify";
+import { Product } from "../model/product.model";
 
 export interface ISkuDocument extends Document {
   name: string;
@@ -31,15 +32,13 @@ export async function generateSku<SKU extends ISkuDocument>(
   }
 
   try {
-    let existingDoc = await model.findOne({ sku });
+    let existingDoc = await Product.findOne({ sku });
     let counter = 1;
     const baseSku = sku;
-
-    while (existingDoc) {
-      sku = `${baseSku}-${Math.round(Math.random() * 100)}-${counter}`;
-      existingDoc = await model.findOne({ sku });
-      counter++;
-    }
+    sku = `${Math.round(Math.random() * 100)}-${baseSku}-${Math.round(
+      Math.random() * 100
+    )}`;
+    existingDoc = await Product.findOne({ sku });
     return sku;
   } catch (error) {
     throw new Error(`Failed to generate SKU: ${(error as Error).message}`);
