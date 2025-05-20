@@ -1,7 +1,8 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { attachedMiddleware, ISkuDocument } from "../middleware/sku.middleware";
 
 export interface IProduct extends ISkuDocument {
+  _id: Schema.Types.String;
   name: string;
   category: string; // reff category
   supplier: mongoose.Types.ObjectId;

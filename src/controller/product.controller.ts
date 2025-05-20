@@ -201,34 +201,29 @@ const exportCSV = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const lowStockAlert = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+const lowStockAlert = async (): Promise<void> => {
   try {
     const products = await Product.find({
       $expr: { $lt: ["$stock", "$lowStockThreshold"] },
     }).populate<{ supplier: { email: string } }>("supplier");
 
     if (!products.length) {
-      res.status(200).json({
-        message: "No products with low stock found.",
-      });
+      console.log("No products with low stock found.");
     }
 
     for (const product of products) {
       if (!product || !product.supplier) {
-        res.status(200).json({
-          message: `Product or Supplier not found for product ${product.id}`,
-        });
+        console.log(`Product or Supplier not found for product ${product.id}`);
         continue;
       }
 
       const supplierEmail = product.supplier.email;
-      const productId = (
-        product.id as string | number | { toString(): string }
-      ).toString();
+
+      // const productId = (
+      //   product.id as string | number | { toString(): string }
+      // ).toString();
+
+      const productId = product.id;
       const stock = product.stock;
 
       const emailSent = await Promise.all([
@@ -237,21 +232,12 @@ const lowStockAlert = async (
 
       if (emailSent[0]) {
         console.log(`Email sent for product ${productId}`);
-        res.status(200).json({
-          message: `Email sent for product ${product.id}`,
-        });
       } else {
         console.error(`Failed to send email for product ${productId}`);
-        res.status(400).json({
-          message: `Failed to send email for Product ${productId}`,
-        });
       }
     }
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to Warn about Low Product Stocks",
-      error: (error as Error).message,
-    });
+    console.error("Error, Failed to Warn about Low Product Stock");
   }
 };
 
