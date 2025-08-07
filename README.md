@@ -8,8 +8,8 @@ A backend-powered inventory management system built with Node.js, Express, and T
 - Product and inventory CRUD operations
 - Category and supplier management
 - Invoice and image upload support using Multer
-- Reporting system (Excel/CSV export) using Telerik Reporting
-- PostgreSQL integration for reliable data storage
+- Report generation in CSV format using `csv-writer`
+- MongoDB integration for flexible and scalable data storage
 - Secure API endpoints with request validation
 - Scalable project structure using MVC architecture
 
@@ -19,7 +19,7 @@ A backend-powered inventory management system built with Node.js, Express, and T
 - **Database**: MongoDB
 - **ODM**: Mongoose
 - **File Upload**: Multer
-- **Reporting**: Telerik Reporting
+- **Reporting**: csv-writer
 - **Authentication**: JWT
 
 ## 📁 Project Structure
@@ -71,3 +71,14 @@ MIT
 ---
 
 > Built with ❤️ by [Amod Pradhan](https://github.com/amod0)
+
+## 🌐 Sample .env Configuration
+
+Create a `.env` file in the root directory and add the following environment variables:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/inventory_db
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=1d
+```
