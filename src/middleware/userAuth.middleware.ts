@@ -2,9 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 import { IUser, User } from "../model/user.model";
+import { ROLE_ENUM } from "../enum/role.enum";
 
 interface AuthRequest extends Request {
   user?: IUser;
+  role?: ROLE_ENUM;
 }
 
 const secure = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -24,6 +26,7 @@ const secure = async (req: AuthRequest, res: Response, next: NextFunction) => {
         return;
       }
       req.user = staff;
+      req.role = staff.role;
       if (!req.user) {
         res.status(401).json({ message: "User not found" });
         return;
@@ -37,13 +40,35 @@ const secure = async (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 };
 
-const admin = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(401).json({ message: "Not authorized as Admin" });
-    return;
-  }
-  console.log("User Role:", req.user?.role);
+// const admin = (...roes: string[]) => {
+//   return async (req: AuthRequest, res: Response, next: NextFunction) => {
+//     const isAllowed = roes.includes(req.role);
+//     if (isAllowed) {
+//       next();
+//     } else {
+//       res.status(401).json({ message: "Not authorized as Admin" });
+//       return;
+//     }
+//     console.log("User Role:", req.user?.role);
+//   };
+// };
+
+
+const admin = (...roles: string[]) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.role) {
+      res.status(401).json({ message: 'Role not found, authorization failed' });
+      return;
+    }
+
+    const isAllowed = roles.includes(req.role);
+    if (isAllowed) {
+      next();
+    } else {
+      res.status(403).json({ message: 'Not authorized as Admin' });
+      return;
+    }
+  };
 };
+
 export { admin, secure };

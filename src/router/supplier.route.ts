@@ -8,8 +8,8 @@ import {
 
 const router = express.Router();
 
-router.route("/create").post(secure, admin, createSupplier);
-router.route("/edit/:id").put(secure, admin, updateSupplier);
-router.route("/delete/:id").delete(secure, admin, deleteSupplier);
+router.route("/create").post(secure, admin("ADMIN"), createSupplier);
+router.route("/edit/:id").put(secure, admin("ADMIN"), updateSupplier);
+router.route("/delete/:id").delete(secure, admin("ADMIN"), deleteSupplier);
 
 export default router;

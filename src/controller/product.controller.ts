@@ -6,7 +6,6 @@ import mongoose from "mongoose";
 import { createObjectCsvWriter } from "csv-writer";
 import path from "path";
 import { sendLowStockEmail } from "../utils/email.util";
-import { promises } from "dns";
 
 const createProduct = async (
   req: Request,

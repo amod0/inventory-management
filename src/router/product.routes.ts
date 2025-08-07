@@ -15,9 +15,9 @@ const router = express.Router();
 router.route("/create").post(secure, upload.single("image"), createProduct);
 router
   .route("/edit/:sku")
-  .put(secure, admin, upload.single("image"), updateProduct);
+  .put(secure, admin('ADMIN'), upload.single("image"), updateProduct);
 
-router.route("/delete/:sku").delete(secure, admin, deleteProduct);
+router.route("/delete/:sku").delete(secure, admin("ADMIN"), deleteProduct);
 router.route("/export").get(exportCSV);
 router.route("/check-low-stock").get(lowStockAlert);
 
