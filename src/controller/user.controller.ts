@@ -71,7 +71,8 @@ const userRegister = async (
       res.status(400);
       throw new Error("Invalid user data");
     }
-  } catch (error) {
+    console.log(req?.body)
+  } catch (error: any) {
     res.status(500);
     next(new Error("Service Error, Server problem registring the User."));
   }
